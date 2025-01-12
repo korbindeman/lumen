@@ -77,8 +77,6 @@ impl Lumen {
                     Pixels(0.),
                     move |idx, _cx| div().child(thumbnails[idx].clone()).into_any_element(),
                 );
-
-                println!("updated!");
             })
             .detach();
 
@@ -120,8 +118,6 @@ impl Lumen {
                             );
 
                             cx.update_model(&handle.clone(), |filmstrip_model, cx| {
-                                println!("{}", thumbnail.filename);
-
                                 filmstrip_model.thumbnails.push(thumbnail);
 
                                 cx.notify();
