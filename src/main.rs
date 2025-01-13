@@ -129,7 +129,9 @@ impl Lumen {
                     panic!("Failed to read directory");
                 }
             } else {
-                panic!("Folder selection failed");
+                // folder selection was cancelled
+
+                // panic!("Folder selection failed");
             }
         })
         .detach();
