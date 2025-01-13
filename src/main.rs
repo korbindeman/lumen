@@ -14,9 +14,25 @@ struct Thumbnail {
 impl RenderOnce for Thumbnail {
     fn render(self, _cx: &mut WindowContext) -> impl IntoElement {
         div()
+            .hover(|this| this.bg(rgb(0x5f5f5f)))
+            .h(px(140.))
+            .w(px(170.))
             .text_color(rgb(0xffffff))
+            .text_xs()
             .child(self.filename.clone())
-            .child(img(self.thumbnail_path.clone()))
+            .child(
+                div()
+                    .justify_center()
+                    .items_center()
+                    .flex()
+                    .h(px(120.))
+                    .w(px(170.))
+                    .child(
+                        img(self.thumbnail_path.clone())
+                            .max_h(px(120.))
+                            .max_w(px(160.)),
+                    ),
+            )
     }
 }
 
@@ -35,24 +51,40 @@ pub struct FilmstripState {
 }
 
 struct Lumen {
-    list_state: ListState,
     filmstrip_model: Model<FilmstripState>,
 }
 
 impl Render for Lumen {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        let _path = self.filmstrip_model.read(cx).path.clone();
+        let path = self.filmstrip_model.read(cx).path.clone();
+        let filmstrip_model = self.filmstrip_model.clone();
 
         let button = div()
             .child("Open file picker")
             .text_color(rgb(0xffffff))
             .on_mouse_down(MouseButton::Left, cx.listener(Self::on_mouse_down));
 
+        let filmstrip = div()
+            .bg(rgb(0x000000))
+            .w_full()
+            .h(px(140.))
+            .flex()
+            .gap(px(10.))
+            .children(filmstrip_model.read(cx).thumbnails.clone());
+
         div()
             .bg(rgb(0x1e1e1e))
             .size_full()
+            .flex()
+            .flex_col()
+            .justify_between()
             .child(button)
-            .child(list(self.list_state.clone()).size_full())
+            .child(
+                div()
+                    .child(path.to_str().unwrap().to_owned())
+                    .text_color(rgb(0xffffff))
+                    .child(filmstrip),
+            )
     }
 }
 
@@ -64,26 +96,7 @@ impl Lumen {
                 thumbnails: vec![],
             });
 
-            let list_state = ListState::new(0, ListAlignment::Top, Pixels(0.), move |_, _| {
-                div().into_any_element()
-            });
-
-            cx.observe(&filmstrip_model, |this: &mut Lumen, model, cx| {
-                let thumbnails = model.read(cx).thumbnails.clone();
-
-                this.list_state = ListState::new(
-                    thumbnails.len(),
-                    ListAlignment::Top,
-                    Pixels(0.),
-                    move |idx, _cx| div().child(thumbnails[idx].clone()).into_any_element(),
-                );
-            })
-            .detach();
-
-            Self {
-                filmstrip_model,
-                list_state,
-            }
+            Self { filmstrip_model }
         })
     }
 }
@@ -102,6 +115,14 @@ impl Lumen {
         cx.spawn(move |_this, mut cx| async move {
             if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
                 if let Ok(dir) = fs::read_dir(folder.path()) {
+                    cx.update_model(&handle.clone(), |filmstrip_model, cx| {
+                        filmstrip_model.path = folder.path().to_path_buf();
+                        filmstrip_model.thumbnails.clear();
+
+                        cx.notify();
+                    })
+                    .unwrap();
+
                     for entry in dir {
                         if let Ok(file) = entry {
                             let filepath = file.path();
@@ -113,7 +134,13 @@ impl Lumen {
                             let thumbnail_filepath = generate_thumbnail(&filepath);
 
                             let thumbnail = Thumbnail::new(
-                                filepath.clone().to_str().unwrap().to_owned(),
+                                filepath
+                                    .clone()
+                                    .file_name()
+                                    .unwrap()
+                                    .to_str()
+                                    .unwrap()
+                                    .to_owned(),
                                 thumbnail_filepath,
                             );
 
