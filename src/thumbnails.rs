@@ -23,7 +23,7 @@ fn generate_file_hash(filepath: &PathBuf) -> Result<String, Box<dyn std::error::
 
 pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
     // hash raw file content
-    let hash = generate_file_hash(&filepath).unwrap();
+    let hash = generate_file_hash(filepath).unwrap();
 
     let thumbnail_filepath = PathBuf::from(CACHE_DIR).join(format!("{hash}.jpg"));
 
@@ -41,5 +41,5 @@ pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
     }
 
     // return the thumbnail filepath
-    return thumbnail_filepath;
+    thumbnail_filepath
 }
