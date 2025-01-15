@@ -27,7 +27,7 @@ impl Render for Lumen {
             .flex()
             .justify_center()
             .hover(|this| this.bg(rgb(0x2f2f2f)))
-            .border(px(1.))
+            .border_1()
             .border_color(rgb(0x3f3f3f))
             .rounded_md()
             .text_color(rgb(0xffffff))
