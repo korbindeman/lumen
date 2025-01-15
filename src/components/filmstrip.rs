@@ -1,7 +1,3 @@
-// uniform width horizontal scrolling list
-
-// https://github.com/zed-industries/zed/blob/main/crates/gpui/src/elements/list.rs
-
 use std::path::PathBuf;
 
 use gpui::*;
@@ -13,7 +9,7 @@ pub struct FilmstripState {
     pub thumbnails: Vec<Thumbnail>,
 }
 
-#[derive(Debug, Clone, IntoElement)]
+#[derive(Debug, IntoElement)]
 pub struct Filmstrip {
     state: Model<FilmstripState>,
 }
@@ -21,9 +17,10 @@ pub struct Filmstrip {
 impl RenderOnce for Filmstrip {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
         div()
-            .border_t(px(1.))
+            .id("filmstrip")
+            .overflow_x_scroll()
+            .border_t_1()
             .border_color(rgb(0x3f3f3f))
-            // .bg(rgb(0x000000))
             .w_full()
             .h(px(140.))
             .flex()
