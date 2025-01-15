@@ -14,6 +14,8 @@ impl RenderOnce for Thumbnail {
             .h(px(140.))
             .w(px(170.))
             .text_color(rgb(0xffffff))
+            .border_r_1()
+            .border_color(rgb(0x3f3f3f))
             .child(div().text_xs().px_1().pt_0p5().child(self.filename.clone()))
             .child(
                 div()
