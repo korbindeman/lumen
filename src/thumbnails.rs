@@ -1,4 +1,5 @@
 use quickraw::Export;
+use rayon::prelude::*;
 use std::{
     fs::{self, File},
     io::Read,
@@ -52,32 +53,35 @@ pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
 }
 
 pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
-    let mut thumbnails = vec![];
+    let mut thumbnails: Vec<Thumbnail>;
 
     if let Ok(dir) = fs::read_dir(filepath) {
-        for entry in dir {
-            let file = entry.unwrap();
-            let filepath = file.path();
-            if filepath.extension().and_then(|ext| ext.to_str()) != Some("ARW") {
-                println!("File {} not supported", filepath.to_str().unwrap());
-                continue;
-            }
+        thumbnails = dir
+            .par_bridge()
+            .filter_map(|entry| {
+                let file = entry.ok()?;
+                let filepath = file.path();
+                if filepath.extension().and_then(|ext| ext.to_str()) != Some("ARW") {
+                    println!("File {} not supported", filepath.to_str().unwrap());
+                    return None;
+                }
 
-            let thumbnail_filepath = generate_thumbnail(&filepath);
+                let thumbnail_filepath = generate_thumbnail(&filepath);
 
-            let thumbnail = Thumbnail::new(
-                filepath
-                    .clone()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned(),
-                thumbnail_filepath,
-            );
+                let thumbnail = Thumbnail::new(
+                    filepath
+                        .clone()
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned(),
+                    thumbnail_filepath,
+                );
 
-            thumbnails.push(thumbnail);
-        }
+                Some(thumbnail)
+            })
+            .collect();
     } else {
         panic!("Failed to read directory");
     }
