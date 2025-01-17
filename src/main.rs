@@ -43,7 +43,6 @@ impl Render for Lumen {
             .justify_end()
             .child(
                 div()
-                    .child(global_path)
                     .child(div().text_xs().child(path.to_str().unwrap().to_owned()))
                     .child(filmstrip),
             )
@@ -52,19 +51,26 @@ impl Render for Lumen {
 
 impl Lumen {
     fn new(cx: &mut WindowContext) -> View<Self> {
-        let path = AppState::global(cx)
-            .upgrade()
-            .unwrap()
-            .current
-            .read(cx)
-            .dir_path
-            .clone();
+        let app_state = AppState::global(cx).upgrade().unwrap();
+
+        let path = app_state.current.read(cx).dir_path.clone();
 
         cx.new_view(|cx| {
             let filmstrip_model = cx.new_model(|_cx| FilmstripState {
                 path,
                 thumbnails: vec![],
             });
+
+            cx.observe(&app_state.current, |this: &mut Lumen, model, cx| {
+                let dir_path = model.read(cx).dir_path.clone();
+                this.filmstrip_state_model.update(cx, |filmstrip, _cx| {
+                    filmstrip.path = dir_path.clone();
+                    filmstrip.thumbnails = thumbnails::load_thumbnails(&dir_path);
+                });
+
+                cx.notify();
+            })
+            .detach();
 
             Self {
                 filmstrip_state_model: filmstrip_model,

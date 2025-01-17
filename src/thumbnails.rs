@@ -1,6 +1,12 @@
 use quickraw::Export;
 use sha2::{Digest, Sha256};
-use std::{fs::File, io::Read, path::PathBuf};
+use std::{
+    fs::{self, File},
+    io::Read,
+    path::PathBuf,
+};
+
+use crate::components::thumbnail::Thumbnail;
 
 const CACHE_DIR: &str = "thumbnail_cache/";
 
@@ -42,4 +48,38 @@ pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
 
     // return the thumbnail filepath
     thumbnail_filepath
+}
+
+pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
+    let mut thumbnails = vec![];
+
+    if let Ok(dir) = fs::read_dir(filepath) {
+        for entry in dir {
+            let file = entry.unwrap();
+            let filepath = file.path();
+            if filepath.extension().and_then(|ext| ext.to_str()) != Some("ARW") {
+                println!("File {} not supported", filepath.to_str().unwrap());
+                continue;
+            }
+
+            let thumbnail_filepath = generate_thumbnail(&filepath);
+
+            let thumbnail = Thumbnail::new(
+                filepath
+                    .clone()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned(),
+                thumbnail_filepath,
+            );
+
+            thumbnails.push(thumbnail);
+        }
+    } else {
+        panic!("Failed to read directory");
+    }
+
+    thumbnails
 }
