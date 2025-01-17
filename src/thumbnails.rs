@@ -82,7 +82,7 @@ pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
         panic!("Failed to read directory");
     }
 
-    thumbnails.sort_by(|a, b| a.filename.cmp(&b.filename));
+    thumbnails.sort_by(|a, b| a.filename.cmp(&b.filename)); // TODO: do this in the UI, not here
 
     thumbnails
 }
