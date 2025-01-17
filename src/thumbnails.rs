@@ -1,6 +1,4 @@
-use gpui::AssetSource;
 use quickraw::Export;
-use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
     io::Read,
@@ -13,19 +11,16 @@ const CACHE_DIR: &str = "thumbnail_cache/";
 
 fn generate_file_hash(filepath: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     let mut file = File::open(filepath)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0; 8192];
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)?;
 
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..bytes_read]);
-    }
+    let seed = 1234;
 
-    let hash = format!("{:x}", hasher.finalize());
-    Ok(hash)
+    let hash = gxhash::gxhash64(&bytes, seed);
+
+    let hash_str = format!("{:x}", hash);
+
+    Ok(hash_str)
 }
 
 pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
