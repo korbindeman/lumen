@@ -1,3 +1,4 @@
+use gpui::AssetSource;
 use quickraw::Export;
 use sha2::{Digest, Sha256};
 use std::{
@@ -80,6 +81,8 @@ pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
     } else {
         panic!("Failed to read directory");
     }
+
+    thumbnails.sort_by(|a, b| a.filename.cmp(&b.filename));
 
     thumbnails
 }
