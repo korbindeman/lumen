@@ -10,13 +10,18 @@ use crate::components::thumbnail::Thumbnail;
 const CACHE_DIR: &str = "thumbnail_cache/";
 
 fn generate_file_hash(filepath: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
-    let mut file = File::open(filepath)?;
-    let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes)?;
-
+    let num_bytes: usize = 1000; // TODO: this might not be enough bytes for all files
     let seed = 1234;
 
-    let hash = gxhash::gxhash64(&bytes, seed);
+    let mut file = File::open(filepath)?;
+
+    let mut bytes = vec![0; num_bytes];
+    let bytes_read = file.read(&mut bytes)?;
+
+    // If the file is smaller than the requested number of bytes, adjust the slice
+    let bytes_to_hash = &bytes[..bytes_read];
+
+    let hash = gxhash::gxhash64(bytes_to_hash, seed);
 
     let hash_str = format!("{:x}", hash);
 
