@@ -9,7 +9,7 @@ use components::{
     thumbnail::Thumbnail,
 };
 use gpui::{actions, *};
-use keybindings::init;
+use keybindings::keybindings;
 use rfd::AsyncFileDialog;
 use std::{
     path::PathBuf,
@@ -109,10 +109,12 @@ fn main() {
         cx.open_window(WindowOptions::default(), |cx| Lumen::new(cx))
             .unwrap();
 
-        cx.bind_keys(init());
+        cx.bind_keys(keybindings());
         cx.set_menus(app_menus());
     });
 }
+
+actions!(workspace, [Open, Quit]);
 
 pub fn init_actions(app_state: Arc<AppState>, cx: &mut AppContext) {
     cx.on_action(move |_: &Open, cx: &mut AppContext| {
@@ -120,6 +122,15 @@ pub fn init_actions(app_state: Arc<AppState>, cx: &mut AppContext) {
         cx.spawn(move |mut cx| async move {
             if let Some(app_state) = app_state.upgrade() {
                 if let Some(folder) = AsyncFileDialog::new().pick_folder().await {
+                    // if path is the same, do nothing
+                    if folder.path()
+                        == cx
+                            .read_model(&app_state.current, |current, _cx| current.dir_path.clone())
+                            .unwrap()
+                    {
+                        return;
+                    }
+
                     cx.update_model(&app_state.current, |current, cx| {
                         current.dir_path = folder.path().to_path_buf();
 
@@ -136,5 +147,3 @@ pub fn init_actions(app_state: Arc<AppState>, cx: &mut AppContext) {
         cx.quit();
     });
 }
-
-actions!(workspace, [Open, Quit]);
