@@ -52,6 +52,16 @@ pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
     thumbnail_filepath
 }
 
+fn is_supported_file(filepath: &PathBuf) -> bool {
+    let supported_extensions = vec!["arw"];
+
+    if let Some(extension) = filepath.extension().and_then(|ext| ext.to_str()) {
+        supported_extensions.contains(&extension.to_lowercase().as_str())
+    } else {
+        false
+    }
+}
+
 pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
     let mut thumbnails: Vec<Thumbnail>;
 
@@ -61,7 +71,7 @@ pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
             .filter_map(|entry| {
                 let file = entry.ok()?;
                 let filepath = file.path();
-                if filepath.extension().and_then(|ext| ext.to_str()) != Some("ARW") {
+                if !is_supported_file(&filepath) {
                     println!("File {} not supported", filepath.to_str().unwrap());
                     return None;
                 }
