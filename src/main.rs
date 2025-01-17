@@ -1,5 +1,6 @@
 mod app_menus;
 mod components;
+mod keybindings;
 mod thumbnails;
 
 use app_menus::app_menus;
@@ -8,6 +9,7 @@ use components::{
     thumbnail::Thumbnail,
 };
 use gpui::{actions, *};
+use keybindings::init;
 use rfd::AsyncFileDialog;
 use std::{
     path::PathBuf,
@@ -23,16 +25,6 @@ impl Render for Lumen {
         let path = self.filmstrip_state_model.read(cx).path.clone();
 
         let filmstrip = Filmstrip::new(self.filmstrip_state_model.clone());
-
-        let app_state = AppState::global(cx);
-
-        let global_path = app_state
-            .upgrade()
-            .and_then(|app_state| {
-                let path_buf = app_state.current.read(cx).dir_path.clone();
-                path_buf.to_str().map(ToOwned::to_owned)
-            })
-            .unwrap_or_else(|| "[No path or invalid UTF-8]".to_string());
 
         div()
             .bg(rgb(0x1e1e1e))
@@ -117,6 +109,7 @@ fn main() {
         cx.open_window(WindowOptions::default(), |cx| Lumen::new(cx))
             .unwrap();
 
+        cx.bind_keys(init());
         cx.set_menus(app_menus());
     });
 }
