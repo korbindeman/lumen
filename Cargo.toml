@@ -9,4 +9,5 @@ gxhash = "3.4.1"
 image = "0.25.5"
 quickraw = { version = "0.1.6", features = ["image"] }
 rawloader = "0.37.1"
+rayon = "1.10.0"
 rfd = "0.15.2"
