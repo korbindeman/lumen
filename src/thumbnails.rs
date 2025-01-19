@@ -1,8 +1,10 @@
+use image::{ColorType, ImageEncoder};
 use quickraw::Export;
 use rayon::prelude::*;
 use std::{
+    ffi::OsString,
     fs::{self, File},
-    io::Read,
+    io::{Error, Read},
     path::PathBuf,
 };
 
@@ -29,7 +31,7 @@ fn generate_file_hash(filepath: &PathBuf) -> Result<String, Box<dyn std::error::
     Ok(hash_str)
 }
 
-pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
+pub fn get_thumbnail_path(filepath: &PathBuf) -> PathBuf {
     // hash raw file content
     let hash = generate_file_hash(filepath).unwrap();
 
@@ -41,19 +43,58 @@ pub fn generate_thumbnail(filepath: &PathBuf) -> PathBuf {
     }
 
     // create thumbnail for raw file, save it with a filename that is a hash of the raw file content.
-    if let Err(e) = Export::export_thumbnail_to_file(
-        filepath.to_str().unwrap(),
-        thumbnail_filepath.to_str().unwrap(),
-    ) {
-        eprintln!("Failed to generate thumbnail for {:?}: {}", filepath, e);
-    }
+    create_thumbnail(filepath, &thumbnail_filepath);
 
     // return the thumbnail filepath
     thumbnail_filepath
 }
 
+fn decode_raw(path: &PathBuf) -> Result<imagepipe::SRGBImage, Box<dyn std::error::Error>> {
+    println!("{:?}", path);
+    let decoded = match imagepipe::simple_decode_8bit(path, 400, 400) {
+        Ok(img) => img,
+        Err(e) => return Err("Failed to decode raw file".into()),
+    };
+
+    Ok(decoded)
+}
+
+fn create_thumbnail(filepath: &PathBuf, thumbnail_filepath: &PathBuf) {
+    if get_filetype(filepath) == "arw" {
+        if let Err(e) = Export::export_thumbnail_to_file(
+            filepath.to_str().unwrap(),
+            thumbnail_filepath.to_str().unwrap(),
+        ) {
+            eprintln!("Failed to generate thumbnail for {:?}: {}", filepath, e);
+        }
+    } else if get_filetype(filepath) == "cr2" {
+        let decoded = decode_raw(filepath).unwrap();
+
+        let mut file = File::create(thumbnail_filepath).unwrap();
+
+        let quality = 90;
+
+        let _encode_result = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut file, quality)
+            .write_image(
+                &decoded.data,
+                decoded.width as u32,
+                decoded.height as u32,
+                ColorType::Rgb8.into(),
+            );
+    }
+}
+
+fn get_filetype(filepath: &PathBuf) -> String {
+    filepath
+        .extension()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_lowercase()
+}
+
 fn is_supported_file(filepath: &PathBuf) -> bool {
-    let supported_extensions = vec!["arw"];
+    let supported_extensions = vec!["arw", "cr2"];
 
     if let Some(extension) = filepath.extension().and_then(|ext| ext.to_str()) {
         supported_extensions.contains(&extension.to_lowercase().as_str())
@@ -76,7 +117,7 @@ pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
                     return None;
                 }
 
-                let thumbnail_filepath = generate_thumbnail(&filepath);
+                let thumbnail_filepath = get_thumbnail_path(&filepath);
 
                 let thumbnail = Thumbnail::new(
                     filepath
