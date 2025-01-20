@@ -16,6 +16,9 @@ pub struct Filmstrip {
 
 impl RenderOnce for Filmstrip {
     fn render(self, cx: &mut WindowContext) -> impl IntoElement {
+        let mut thumbnails = self.state.read(cx).thumbnails.clone();
+        thumbnails.sort_by(|a, b| a.filename.cmp(&b.filename));
+
         div()
             .id("filmstrip")
             .overflow_x_scroll()
@@ -25,7 +28,7 @@ impl RenderOnce for Filmstrip {
             .h(px(140.))
             .flex()
             .gap(px(10.))
-            .children(self.state.read(cx).thumbnails.clone())
+            .children(thumbnails)
     }
 }
 

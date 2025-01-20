@@ -2,9 +2,8 @@ use image::{ColorType, ImageEncoder};
 use quickraw::Export;
 use rayon::prelude::*;
 use std::{
-    ffi::OsString,
     fs::{self, File},
-    io::{Error, Read},
+    io::Read,
     path::PathBuf,
 };
 
@@ -53,7 +52,7 @@ fn decode_raw(path: &PathBuf) -> Result<imagepipe::SRGBImage, Box<dyn std::error
     println!("{:?}", path);
     let decoded = match imagepipe::simple_decode_8bit(path, 400, 400) {
         Ok(img) => img,
-        Err(e) => return Err("Failed to decode raw file".into()),
+        Err(_e) => return Err("Failed to decode raw file".into()),
     };
 
     Ok(decoded)
@@ -104,7 +103,7 @@ fn is_supported_file(filepath: &PathBuf) -> bool {
 }
 
 pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
-    let mut thumbnails: Vec<Thumbnail>;
+    let thumbnails: Vec<Thumbnail>;
 
     if let Ok(dir) = fs::read_dir(filepath) {
         thumbnails = dir
@@ -136,8 +135,6 @@ pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
     } else {
         panic!("Failed to read directory");
     }
-
-    thumbnails.sort_by(|a, b| a.filename.cmp(&b.filename)); // TODO: do this in the UI, not here
 
     thumbnails
 }
