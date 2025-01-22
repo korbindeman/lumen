@@ -1,12 +1,14 @@
 mod app_menus;
 mod components;
 mod keybindings;
+mod raw;
 mod thumbnails;
 
 use app_menus::app_menus;
 use components::{
     filmstrip::{Filmstrip, FilmstripState},
     thumbnail::Thumbnail,
+    viewer::Viewer,
 };
 use gpui::{actions, *};
 use keybindings::keybindings;
@@ -26,18 +28,20 @@ impl Render for Lumen {
 
         let filmstrip = Filmstrip::new(self.filmstrip_state_model.clone());
 
+        let app_state = AppState::global(cx).upgrade().unwrap();
+
+        let viewer = Viewer::new(app_state.current.read(cx).image_path.clone());
+
         div()
             .bg(rgb(0x1e1e1e))
             .text_color(rgb(0xffffff))
             .size_full()
             .flex()
             .flex_col()
-            .justify_end()
-            .child(
-                div()
-                    .child(div().text_xs().child(path.to_str().unwrap().to_owned()))
-                    .child(filmstrip),
-            )
+            .justify_between()
+            .child(div().text_xs().child(path.to_str().unwrap().to_owned()))
+            .child(div().flex_1().child(viewer))
+            .child(div().child(filmstrip))
     }
 }
 
@@ -53,11 +57,11 @@ impl Lumen {
                 thumbnails: vec![],
             });
 
-            cx.observe(&app_state.current, |this: &mut Lumen, model, cx| {
-                let dir_path = model.read(cx).dir_path.clone();
+            cx.observe(&app_state.current, |this: &mut Lumen, current, cx| {
+                let dir_path = current.read(cx).dir_path.clone();
                 this.filmstrip_state_model.update(cx, |filmstrip, _cx| {
                     filmstrip.path = dir_path.clone();
-                    filmstrip.thumbnails = thumbnails::load_thumbnails(&dir_path);
+                    filmstrip.thumbnails = thumbnails::load_thumbnails(&dir_path, current.clone());
                 });
 
                 cx.notify();
@@ -73,6 +77,7 @@ impl Lumen {
 
 pub struct Current {
     pub dir_path: PathBuf,
+    pub image_path: PathBuf,
 }
 
 pub struct AppState {
@@ -99,6 +104,7 @@ fn main() {
     app.run(|cx: &mut AppContext| {
         let current = cx.new_model(|_cx| Current {
             dir_path: PathBuf::new(),
+            image_path: PathBuf::new(),
         });
 
         let app_state = Arc::new(AppState { current });
@@ -106,8 +112,12 @@ fn main() {
 
         init_actions(app_state.clone(), cx);
 
-        cx.open_window(WindowOptions::default(), |cx| Lumen::new(cx))
-            .unwrap();
+        let window_options = WindowOptions {
+            window_bounds: Some(WindowBounds::Maximized(Bounds::default())),
+            ..Default::default()
+        };
+
+        cx.open_window(window_options, |cx| Lumen::new(cx)).unwrap();
 
         cx.bind_keys(keybindings());
         cx.set_menus(app_menus());

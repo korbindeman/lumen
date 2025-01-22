@@ -27,7 +27,6 @@ impl RenderOnce for Filmstrip {
             .w_full()
             .h(px(140.))
             .flex()
-            .gap(px(10.))
             .children(thumbnails)
     }
 }

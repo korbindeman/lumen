@@ -1,3 +1,4 @@
+use gpui::Model;
 use image::{ColorType, ImageEncoder};
 use quickraw::Export;
 use rayon::prelude::*;
@@ -7,7 +8,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::components::thumbnail::Thumbnail;
+use crate::{components::thumbnail::Thumbnail, Current};
 
 const CACHE_DIR: &str = "thumbnail_cache/";
 
@@ -52,14 +53,14 @@ fn decode_raw(path: &PathBuf) -> Result<imagepipe::SRGBImage, Box<dyn std::error
     println!("{:?}", path);
     let decoded = match imagepipe::simple_decode_8bit(path, 400, 400) {
         Ok(img) => img,
-        Err(_e) => return Err("Failed to decode raw file".into()),
+        Err(_e) => return Err(format!("Failed to decode raw file: {:?}", path).into()),
     };
 
     Ok(decoded)
 }
 
 fn create_thumbnail(filepath: &PathBuf, thumbnail_filepath: &PathBuf) {
-    if get_filetype(filepath) == "arw" {
+    if get_filetype(filepath) == "arw" || get_filetype(filepath) == "raf" {
         if let Err(e) = Export::export_thumbnail_to_file(
             filepath.to_str().unwrap(),
             thumbnail_filepath.to_str().unwrap(),
@@ -93,7 +94,7 @@ fn get_filetype(filepath: &PathBuf) -> String {
 }
 
 fn is_supported_file(filepath: &PathBuf) -> bool {
-    let supported_extensions = vec!["arw", "cr2"];
+    let supported_extensions = vec!["arw", "cr2", "raf"];
 
     if let Some(extension) = filepath.extension().and_then(|ext| ext.to_str()) {
         supported_extensions.contains(&extension.to_lowercase().as_str())
@@ -102,7 +103,7 @@ fn is_supported_file(filepath: &PathBuf) -> bool {
     }
 }
 
-pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
+pub fn load_thumbnails(filepath: &PathBuf, current_handle: Model<Current>) -> Vec<Thumbnail> {
     let thumbnails: Vec<Thumbnail>;
 
     if let Ok(dir) = fs::read_dir(filepath) {
@@ -127,6 +128,8 @@ pub fn load_thumbnails(filepath: &PathBuf) -> Vec<Thumbnail> {
                         .unwrap()
                         .to_owned(),
                     thumbnail_filepath,
+                    current_handle.clone(),
+                    filepath,
                 );
 
                 Some(thumbnail)
