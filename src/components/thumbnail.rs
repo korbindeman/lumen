@@ -15,6 +15,7 @@ impl RenderOnce for Thumbnail {
     fn render(self, _cx: &mut WindowContext) -> impl IntoElement {
         div()
             .hover(|this| this.bg(rgb(0x2f2f2f)))
+            .cursor_pointer()
             .h(px(140.))
             .w(px(170.))
             .px_2()
