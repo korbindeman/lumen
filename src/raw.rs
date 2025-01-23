@@ -63,9 +63,17 @@ fn decode_quickraw(path: &PathBuf) -> Result<image::RgbaImage, Box<dyn std::erro
     let demosaicing_method = DemosaicingMethod::Linear;
     let color_space = data::XYZ2SRGB;
     let gamma = data::GAMMA_SRGB;
-    let output_type = OutputType::Raw16;
+    let output_type = OutputType::Raw8;
     let auto_crop = false;
     let auto_rotate = false;
+
+    // info is a `quickexif::ParsedInfo` type, for more info please check https://docs.rs/quickexif
+    let info = Export::export_exif_info(Input::ByFile(path.to_str().unwrap())).unwrap();
+
+    // let all = info.stringify_all().unwrap();
+    // print!("{}", all);
+
+    let orientation = info.u16("orientation").unwrap();
 
     let export_job = match Export::new(
         Input::ByFile(path.to_str().unwrap()),
@@ -97,10 +105,14 @@ fn decode_quickraw(path: &PathBuf) -> Result<image::RgbaImage, Box<dyn std::erro
         .into());
     }
 
-    let image = match image::RgbaImage::from_raw(width as u32, height as u32, rgba_data) {
+    let mut image = match image::RgbaImage::from_raw(width as u32, height as u32, rgba_data) {
         Some(img) => img,
         None => return Err(format!("Failed to create image: {:?}", path).into()),
     };
+
+    if orientation == 8 {
+        image = image::imageops::rotate270(&image);
+    }
 
     Ok(image)
 }
