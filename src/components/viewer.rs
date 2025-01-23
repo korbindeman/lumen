@@ -1,10 +1,16 @@
+use std::collections::HashMap;
+use std::sync::Mutex;
 use std::{path::PathBuf, sync::Arc};
 
 use gpui::*;
 use image::Frame;
+use once_cell::sync::Lazy;
 use smallvec::SmallVec;
 
 use crate::raw::decode_raw;
+
+static IMAGE_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<RenderImage>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 #[derive(IntoElement)]
 pub struct Viewer {
@@ -23,7 +29,7 @@ impl RenderOnce for Viewer {
             .justify_center()
             .child(
                 div().child(
-                    img(ImageSource::Render(Arc::new(load_image(&self.path))))
+                    img(ImageSource::Render(load_image(&self.path)))
                         .max_w(px(800.))
                         .max_h(px(600.)),
                 ),
@@ -37,12 +43,18 @@ impl Viewer {
     }
 }
 
-fn load_image(path: &PathBuf) -> RenderImage {
+fn load_image(path: &PathBuf) -> Arc<RenderImage> {
+    let mut cache = IMAGE_CACHE.lock().unwrap();
+
+    if let Some(cached_image) = cache.get(path) {
+        return Arc::clone(cached_image);
+    }
+
     let image = decode_raw(&path).unwrap();
-
     let single_frame = SmallVec::from_buf([Frame::new(image)]);
-
     let render_image_single = RenderImage::new(single_frame);
 
-    render_image_single
+    let arc_image = Arc::new(render_image_single);
+    cache.insert(path.clone(), Arc::clone(&arc_image));
+    arc_image
 }

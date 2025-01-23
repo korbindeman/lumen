@@ -10,6 +10,7 @@ dependencies = [
  "gxhash",
  "image 0.25.5",
  "imagepipe",
+ "once_cell",
  "quickraw",
  "rawloader",
  "rayon",
