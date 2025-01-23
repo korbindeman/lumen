@@ -73,8 +73,6 @@ fn decode_quickraw(path: &PathBuf) -> Result<image::RgbaImage, Box<dyn std::erro
     // let all = info.stringify_all().unwrap();
     // print!("{}", all);
 
-    let orientation = info.u16("orientation").unwrap();
-
     let export_job = match Export::new(
         Input::ByFile(path.to_str().unwrap()),
         Output::new(
@@ -110,8 +108,12 @@ fn decode_quickraw(path: &PathBuf) -> Result<image::RgbaImage, Box<dyn std::erro
         None => return Err(format!("Failed to create image: {:?}", path).into()),
     };
 
-    if orientation == 8 {
-        image = image::imageops::rotate270(&image);
+    let orientation = info.u16("orientation").unwrap();
+
+    match orientation {
+        6 => image = image::imageops::rotate90(&image),
+        8 => image = image::imageops::rotate270(&image),
+        _ => {}
     }
 
     Ok(image)
