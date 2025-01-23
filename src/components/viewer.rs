@@ -27,13 +27,7 @@ impl RenderOnce for Viewer {
             .flex()
             .items_center()
             .justify_center()
-            .child(
-                div().child(
-                    img(ImageSource::Render(load_image(&self.path)))
-                        .max_w(px(800.))
-                        .max_h(px(600.)),
-                ),
-            )
+            .child(div().child(img(load_image(&self.path)).max_w(px(800.)).max_h(px(600.))))
     }
 }
 
@@ -43,11 +37,11 @@ impl Viewer {
     }
 }
 
-fn load_image(path: &PathBuf) -> Arc<RenderImage> {
+fn load_image(path: &PathBuf) -> ImageSource {
     let mut cache = IMAGE_CACHE.lock().unwrap();
 
     if let Some(cached_image) = cache.get(path) {
-        return Arc::clone(cached_image);
+        return ImageSource::Render(Arc::clone(cached_image));
     }
 
     let image = decode_raw(&path).unwrap();
@@ -56,5 +50,5 @@ fn load_image(path: &PathBuf) -> Arc<RenderImage> {
 
     let arc_image = Arc::new(render_image_single);
     cache.insert(path.clone(), Arc::clone(&arc_image));
-    arc_image
+    ImageSource::Render(arc_image)
 }
