@@ -1,14 +1,12 @@
 use gpui::*;
-use std::path::PathBuf;
 
-use crate::Current;
+use crate::{raw::Image, Current};
 
 #[derive(Debug, Clone, IntoElement)]
 pub struct Thumbnail {
-    pub filename: SharedString,
-    pub thumbnail_path: PathBuf,
+    image: Image,
+    pub filename: String,
     pub current_handle: Model<Current>,
-    pub raw_path: PathBuf,
 }
 
 impl RenderOnce for Thumbnail {
@@ -25,14 +23,14 @@ impl RenderOnce for Thumbnail {
             .child(div().text_xs().px_1().pt_0p5().child(self.filename.clone()))
             .child(
                 div().justify_center().items_center().flex().child(
-                    img(self.thumbnail_path.clone())
+                    img(self.image.thumbnail_path.clone())
                         .max_h(px(120.))
                         .max_w(px(160.)),
                 ),
             )
             .on_mouse_down(MouseButton::Left, move |_event, cx| {
                 self.current_handle.update(cx, |current, cx| {
-                    current.image_path = self.raw_path.clone();
+                    current.image = self.image.clone();
                     cx.notify();
                 });
             })
@@ -40,17 +38,20 @@ impl RenderOnce for Thumbnail {
 }
 
 impl Thumbnail {
-    pub fn new(
-        filename: String,
-        thumbnail_path: PathBuf,
-        current_handle: Model<Current>,
-        raw_path: PathBuf,
-    ) -> Self {
+    pub fn new(image: Image, current_handle: Model<Current>) -> Self {
+        let filename = image
+            .path
+            .clone()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
+
         Self {
-            filename: filename.into(),
-            thumbnail_path,
+            image,
+            filename,
             current_handle,
-            raw_path,
         }
     }
 }

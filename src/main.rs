@@ -2,7 +2,6 @@ mod app_menus;
 mod components;
 mod keybindings;
 mod raw;
-mod thumbnails;
 
 use app_menus::app_menus;
 use components::{
@@ -12,6 +11,7 @@ use components::{
 };
 use gpui::{actions, *};
 use keybindings::keybindings;
+use raw::{load_dir, Image};
 use rfd::AsyncFileDialog;
 use std::{
     path::PathBuf,
@@ -30,7 +30,7 @@ impl Render for Lumen {
 
         let app_state = AppState::global(cx).upgrade().unwrap();
 
-        let viewer = Viewer::new(app_state.current.read(cx).image_path.clone());
+        let viewer = Viewer::new(app_state.current.read(cx).image.clone());
 
         div()
             .bg(rgb(0x1e1e1e))
@@ -61,7 +61,7 @@ impl Lumen {
                 let dir_path = current.read(cx).dir_path.clone();
                 this.filmstrip_state_model.update(cx, |filmstrip, _cx| {
                     filmstrip.path = dir_path.clone();
-                    filmstrip.thumbnails = thumbnails::load_thumbnails(&dir_path, current.clone());
+                    filmstrip.thumbnails = load_dir(&dir_path, current.clone());
                 });
 
                 cx.notify();
@@ -77,7 +77,7 @@ impl Lumen {
 
 pub struct Current {
     pub dir_path: PathBuf,
-    pub image_path: PathBuf,
+    pub image: Image,
 }
 
 pub struct AppState {
@@ -104,7 +104,7 @@ fn main() {
     app.run(|cx: &mut AppContext| {
         let current = cx.new_model(|_cx| Current {
             dir_path: PathBuf::new(),
-            image_path: PathBuf::new(),
+            image: Image::empty(),
         });
 
         let app_state = Arc::new(AppState { current });
